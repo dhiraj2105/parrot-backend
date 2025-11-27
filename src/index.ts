@@ -1,17 +1,11 @@
-/**
- * Main Server Entry
- * -----------------
- * - Loads environment variables
- * - Connects to MongoDB
- * - Starts Express HTTP server
- */
-
 import express, { Application } from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import http from "http";
 import { connectDB } from "./db/connect.js";
 import chalk from "chalk";
 import sessionRouter from "./api/session/session.router.js";
+import { attachWebsocketServer } from "./ws/websocket.js";
 
 dotenv.config();
 
@@ -24,16 +18,21 @@ app.get("/", (_req, res) => {
   res.json({ status: "ok", message: "Parrot Backend Running..." });
 });
 
-// Routes
-
 // Session Route
 app.use("/api/session", sessionRouter);
 
-const startServer = async () => {
+const startServer = async (): Promise<void> => {
   await connectDB();
 
-  const PORT = process.env.PORT || 8000;
-  app.listen(PORT, () => {
+  const PORT: number = Number(process.env.PORT);
+
+  // http server
+  const server = http.createServer(app);
+
+  // attach websocket server
+  attachWebsocketServer(server);
+
+  server.listen(PORT, () => {
     console.log(chalk.blue(`--- Server running on port ${PORT}`));
   });
 };
